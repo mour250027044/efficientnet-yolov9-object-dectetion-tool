@@ -1,0 +1,80 @@
+# 01_baseline_plus_efficientnet.yaml
+# (Baseline + EfficientNetBackbone)
+# Parameters
+nc: 80
+
+# Backbone
+backbone:
+  # Enabled EfficientNetBackbone
+  - [-1, 1, EfficientNetBackbone, ["efficientnet_b3", True, [2, 3, 4]]] # 0
+
+# Transition & lightweight feature adapters
+  - [-1, 1, Adapter, [1280, 256]]           # 1
+  - [-1, 1, nn.Identity, []]                # 2 (Was FABlock)
+  - [-1, 1, nn.Identity, []]                # 3 (Was MyHGBlock)
+  - [-1, 1, Conv, [384, 3, 2]]              # 4 (Was SPDADown)
+  - [-1, 1, nn.Identity, []]                # 5 (Was FABlock)
+  - [-1, 1, nn.Identity, []]                # 6 (Was MyHGBlock)
+  - [-1, 1, Adapter, [512, 256]]            # 7
+  - [-1, 1, nn.Identity, []]                # 8 (Was DropBlock)
+
+# ------------------------------------------------------------------
+# Neck / Top-down path (feature fusion + attention)
+# ------------------------------------------------------------------
+head:
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # 9
+  - [[-1, 5], 1, Concat, [1]]                 # 10
+  - [-1, 1, Adapter, [640, 384]]            # 11
+  - [-1, 1, nn.Identity, []]                # 12 (Was FABlock)
+  - [-1, 1, nn.Identity, []]                # 13 (Was CBAM)
+
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # 14
+  - [[-1, 2], 1, Concat, [1]]                 # 15
+  - [-1, 1, Adapter, [640, 256]]            # 16
+  - [-1, 1, nn.Identity, []]                # 17 (Was FABlock)
+  - [-1, 1, nn.Identity, []]                # 18 (Was CBAM)
+
+# ------------------------------------------------------------------
+# Bottom-up path (enhanced fusion)
+# ------------------------------------------------------------------
+  - [-1, 1, Conv, [256, 3, 2]]              # 19 (Was SPDADown)
+  - [[-1, 11], 1, Concat, [1]]                # 20
+  - [-1, 1, Adapter, [640, 384]]            # 21
+  - [-1, 1, nn.Identity, []]                # 22 (Was FABlock)
+  - [-1, 1, nn.Identity, []]                # 23 (Was CBAM)
+
+  - [-1, 1, Conv, [384, 3, 2]]              # 24 (Was SPDADown)
+  - [[-1, 7], 1, Concat, [1]]                 # 25
+  - [-1, 1, Adapter, [640, 512]]            # 26
+  - [-1, 1, nn.Identity, []]                # 27 (Was FABlock)
+  - [-1, 1, nn.Identity, []]                # 28 (Was CBAM)
+
+# ------------------------------------------------------------------
+# BiFPN-style multi-scale fusion (fuse P3, P4, P5)
+# ------------------------------------------------------------------
+  - [[17, 22, 27], 1, Concat, [1]]           # 29
+  - [-1, 1, Adapter, [768, 512]]            # 30
+  - [-1, 1, nn.Identity, []]                # 31 (Was FABlock)
+  - [-1, 1, nn.Identity, []]                # 32 (Was BiFPN)
+  - [-1, 1, nn.Identity, []]                # 33 (Was CBAM)
+
+# ------------------------------------------------------------------
+# ASPP + SPPF context modules (capture multi-scale context)
+# ------------------------------------------------------------------
+  - [-1, 1, nn.Identity, []]                # 34 (Was ASPP)
+  - [-1, 1, Adapter, [512, 256]]            # 35
+  - [-1, 1, nn.Identity, []]                # 36 (Was FABlock)
+  - [-1, 1, nn.Identity, []]                # 37 (Was SPPF)
+
+# ------------------------------------------------------------------
+# Prepare detection heads (multi-scale adapters)
+# ------------------------------------------------------------------
+  # !! CORRECTED layer 15 to 17 !!
+  - [17, 1, Adapter, [256, 96]]             # 38 # from layer 17 (P3)
+  - [21, 1, Adapter, [384, 160]]            # 39 # from layer 21 (P4)
+  - [27, 1, Adapter, [512, 192]]            # 40 # from layer 27 (P5)
+
+# ------------------------------------------------------------------
+# Detect head (expects 3 inputs: P3, P4, P5)
+# ------------------------------------------------------------------
+  - [[38, 39, 40], 1, Detect, [nc]]         # 41

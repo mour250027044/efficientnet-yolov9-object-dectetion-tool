@@ -1,0 +1,15 @@
+names:
+- hammer
+- piller
+- screw driver
+- wrench
+nc: 4
+roboflow:
+  license: Public Domain
+  project: tools-detection-ce8so
+  url: https://universe.roboflow.com/caci-nr6wn/tools-detection-ce8so/dataset/2
+  version: 2
+  workspace: caci-nr6wn
+test: ../test/images
+train: ../train/images
+val: ../valid/images

@@ -1,0 +1,18 @@
+names:
+- CCS1
+- CCS2
+- CHAdeMO
+- GB-T
+- Tesla Model-S-
+- Type 1
+- Type 2
+nc: 7
+roboflow:
+  license: CC BY 4.0
+  project: charging-ports
+  url: https://universe.roboflow.com/srmist-doq3j/charging-ports/dataset/7
+  version: 7
+  workspace: srmist-doq3j
+test: ../test/images
+train: ../train/images
+val: ../valid/images

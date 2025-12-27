@@ -1,0 +1,19 @@
+names:
+- b_casing
+- battery_module
+- bms_unit
+- busbar
+- connector
+- high_volt_cable
+- low_volt_cable
+- nut
+nc: 8
+roboflow:
+  license: CC BY 4.0
+  project: ev-battery-components-edfw3
+  url: https://universe.roboflow.com/academic-lsrwt/ev-battery-components-edfw3/dataset/3
+  version: 3
+  workspace: academic-lsrwt
+test: ../test/images
+train: ../train/images
+val: ../valid/images

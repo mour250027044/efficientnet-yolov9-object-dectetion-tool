@@ -1,0 +1,72 @@
+# YOLOv9s object detection model with a fully custom "Hybrid" neck
+#
+# STRATEGY:
+# 1. Use the standard YOLOv9s GELAN backbone (layers 0-9) as the feature extractor.
+# 2. Replace the entire YOLOv9s neck (all RepNCSPELAN4 blocks) with a
+#    new, custom-built PANet using your modules:
+#    - FABlock + CBAM for P3/P4 refinement.
+#    - MyHGBlock for heavy-duty P4 fusion.
+#    - ASPP + SPPF for P5 context.
+#
+# This is a true hybrid model and a very strong academic experiment.
+
+# Parameters
+nc: 80 # number of classes
+
+# ------------------------------------------------------------------
+# 1. Standard YOLOv9s Backbone (GELAN) - UNCHANGED
+# ------------------------------------------------------------------
+backbone:
+  - [-1, 1, Conv, [32, 3, 2]] # 0-P1/2
+  - [-1, 1, Conv, [64, 3, 2]] # 1-P2/4
+  - [-1, 1, ELAN1, [64, 64, 32]] # 2
+  - [-1, 1, AConv, [128]] # 3-P3/8
+  - [-1, 1, RepNCSPELAN4, [128, 128, 64, 3]] # 4 (P3)
+  - [-1, 1, AConv, [192]] # 5-P4/16
+  - [-1, 1, RepNCSPELAN4, [192, 192, 96, 3]] # 6 (P4)
+  - [-1, 1, AConv, [256]] # 7-P5/32
+  - [-1, 1, RepNCSPELAN4, [256, 256, 128, 3]] # 8
+  - [-1, 1, SPPELAN, [256, 128]] # 9 (P5)
+
+# ------------------------------------------------------------------
+# 2. !! NEW Custom Hybrid Neck !!
+# ------------------------------------------------------------------
+head:
+  # --- Top-down path ---
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # 10 (from P5)
+  - [[-1, 6], 1, Concat, [1]] # 11 (cat backbone P4)
+  # REPLACEMENT for RepNCSPELAN4 (layer 12)
+  - [-1, 1, Adapter, [448, 192]] # 12 (Adapter to 192)
+  - [-1, 1, FABlock, [192]] # 13
+  - [-1, 1, CBAM, [192]] # 14 (This is our new P4_out)
+
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # 15 (from P4_out)
+  - [[-1, 4], 1, Concat, [1]] # 16 (cat backbone P3)
+  # REPLACEMENT for RepNCSPELAN4 (layer 15)
+  - [-1, 1, Adapter, [320, 128]] # 17 (Adapter to 128)
+  - [-1, 1, FABlock, [128]] # 18
+  - [-1, 1, CBAM, [128]] # 19 (This is our new P3_out)
+
+  # --- Bottom-up path ---
+  # Use SPDADown for a more custom downsample
+  - [19, 1, SPDADown, [128]] # 20 (from P3_out, -> 256 channels)
+  - [[-1, 14], 1, Concat, [1]] # 21 (cat with P4_out)
+  # REPLACEMENT for RepNCSPELAN4 (layer 18)
+  # Use the heavy-duty MyHGBlock here
+  - [-1, 1, Adapter, [448, 192]] # 22 (Adapter to 192)
+  - [-1, 1, MyHGBlock, [192, 4, 3, 1]] # 23 (This is our new P4_out_2)
+
+  # Use SPDADown again
+  - [23, 1, SPDADown, [192]] # 24 (from P4_out_2, -> 384 channels)
+  - [[-1, 9], 1, Concat, [1]] # 25 (cat with P5)
+  # REPLACEMENT for RepNCSPELAN4 (layer 21)
+  # Use context modules (ASPP, SPPF) for the largest scale
+  - [-1, 1, Adapter, [640, 256]] # 26 (Adapter to 256)
+  - [-1, 1, ASPP, [256, [1, 6, 12]]] # 27
+  - [-1, 1, SPPF, [256, 5]] # 28 (This is our new P5_out_2)
+
+# ------------------------------------------------------------------
+# 3. Final Detection
+# ------------------------------------------------------------------
+  # Detect from our 3 new custom-processed heads
+  - [[19, 23, 28], 1, Detect, [nc]] # 29

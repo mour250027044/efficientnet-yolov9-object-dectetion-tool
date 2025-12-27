@@ -1,0 +1,4 @@
+*.zip
+*.pt
+runs/
+.ipynb_checkpoints/
