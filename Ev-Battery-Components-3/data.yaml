@@ -1,12 +1,12 @@
 names:
-- b_casing
-- battery_module
-- bms_unit
-- busbar
-- connector
-- high_volt_cable
-- low_volt_cable
-- nut
+  - b_casing
+  - battery_module
+  - bms_unit
+  - busbar
+  - connector
+  - high_volt_cable
+  - low_volt_cable
+  - nut
 nc: 8
 roboflow:
   license: CC BY 4.0
