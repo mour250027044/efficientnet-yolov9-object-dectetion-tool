@@ -20,6 +20,4 @@ class EfficientNetBackbone(nn.Module):
         f1 = self.stage1(x)
         f2 = self.stage2(f1)
         f3 = self.stage3(f2)
-        # THIS IS THE CRITICAL FIX: Return only the last feature map
         return f3
-

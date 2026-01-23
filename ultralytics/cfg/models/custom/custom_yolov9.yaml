@@ -1,82 +1,54 @@
-# custom_yolov9.yaml
-# Parameters
 nc: 80
 
-# Backbone
 backbone:
   - [-1, 1, EfficientNetBackbone, ["efficientnet_b3", True, [2, 3, 4]]]
+  - [-1, 1, Adapter, [1280, 256]]
+  - [-1, 1, FABlock, [256]]
+  - [-1, 1, MyHGBlock, [256, 4, 3, 1]]
+  - [-1, 1, SPDADown, [384]]
+  - [-1, 1, FABlock, [384]]
+  - [-1, 1, MyHGBlock, [512, 4, 3, 1]]
+  - [-1, 1, Adapter, [512, 256]]
+  - [-1, 1, DropBlock, [0.1]]
 
-# Transition & lightweight feature adapters
-  - [-1, 1, Adapter, [1280, 256]]             # 1
-  - [-1, 1, FABlock, [256]]                    # 2
-  - [-1, 1, MyHGBlock, [256, 4, 3, 1]]         # 3
-  - [-1, 1, SPDADown, [384]]                   # 4
-  - [-1, 1, FABlock, [384]]                    # 5
-  - [-1, 1, MyHGBlock, [512, 4, 3, 1]]         # 6
-  - [-1, 1, Adapter, [512, 256]]               # 7
-
-  # add DropBlock for stronger regularization in mid-level features
-  - [-1, 1, DropBlock, [0.1]]                  # 8  (DropBlock rate 0.1)
-
-# ------------------------------------------------------------------
-# Neck / Top-down path (feature fusion + attention)
-# ------------------------------------------------------------------
 head:
-  # top-down upsample + concat fusion (P3 from earlier)
-  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]      # 9
-  - [[-1, 5], 1, Concat, [1]]                       # 10
-  - [-1, 1, Adapter, [640, 384]]                    # 11
-  - [-1, 1, FABlock, [384]]                         # 12
-  - [-1, 1, CBAM, [384]]                            # 13  # attention after FABlock
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [[-1, 5], 1, Concat, [1]]
+  - [-1, 1, Adapter, [640, 384]]
+  - [-1, 1, FABlock, [384]]
+  - [-1, 1, CBAM, [384]]
 
-  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]      # 14
-  - [[-1, 2], 1, Concat, [1]]                       # 15
-  - [-1, 1, Adapter, [640, 256]]                    # 16
-  - [-1, 1, FABlock, [256]]                         # 17
-  - [-1, 1, CBAM, [256]]                            # 18
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [[-1, 2], 1, Concat, [1]]
+  - [-1, 1, Adapter, [640, 256]]
+  - [-1, 1, FABlock, [256]]
+  - [-1, 1, CBAM, [256]]
 
-# ------------------------------------------------------------------
-# Bottom-up path (enhanced fusion)
-# ------------------------------------------------------------------
-  - [-1, 1, SPDADown, [256]]                        # 19
-  - [[-1, 11], 1, Concat, [1]]                      # 20
-  - [-1, 1, Adapter, [640, 384]]                    # 21
-  - [-1, 1, FABlock, [384]]                         # 22
-  - [-1, 1, CBAM, [384]]                            # 23
+  - [-1, 1, SPDADown, [256]]
+  - [[-1, 11], 1, Concat, [1]]
+  - [-1, 1, Adapter, [640, 384]]
+  - [-1, 1, FABlock, [384]]
+  - [-1, 1, CBAM, [384]]
 
-  - [-1, 1, SPDADown, [384]]                        # 24
-  - [[-1, 7], 1, Concat, [1]]                       # 25
-  - [-1, 1, Adapter, [640, 512]]                    # 26
-  - [-1, 1, FABlock, [512]]                         # 27
-  - [-1, 1, CBAM, [512]]                            # 28
+  - [-1, 1, SPDADown, [384]]
+  - [[-1, 7], 1, Concat, [1]]
+  - [-1, 1, Adapter, [640, 512]]
+  - [-1, 1, FABlock, [512]]
+  - [-1, 1, CBAM, [512]]
 
-# ------------------------------------------------------------------
-# BiFPN-style multi-scale fusion (fuse P3, P4, P5)
-# ------------------------------------------------------------------
-  # prepare P3 (from layer 17), P4 (from 22), P5 (from 27)
-  - [[17, 22, 27], 1, Concat, [1]]                  # 29  # combine multi-scale features
-  - [-1, 1, Adapter, [768, 512]]                    # 30  # unify channels
-  - [-1, 1, FABlock, [512]]                         # 31
-  - [-1, 1, BiFPN, [512, 2]]                        # 32  # BiFPN with 2 repeats
-  - [-1, 1, CBAM, [512]]                            # 33
+  - [[17, 22, 27], 1, Concat, [1]]
+  - [-1, 1, Adapter, [768, 512]]
+  - [-1, 1, FABlock, [512]]
+  - [-1, 1, BiFPN, [512, 2]]
+  - [-1, 1, CBAM, [512]]
 
-# ------------------------------------------------------------------
-# ASPP + SPPF context modules (capture multi-scale context)
-# ------------------------------------------------------------------
-  - [-1, 1, ASPP, [512, [1, 6, 12, 18]]]            # 34  # atrous spatial pyramid pooling
-  - [-1, 1, Adapter, [512, 256]]                    # 35
-  - [-1, 1, FABlock, [256]]                         # 36
-  - [-1, 1, SPPF, [256, 5]]                         # 37  # spatial pyramid pooling fast
+  - [-1, 1, ASPP, [512, [1, 6, 12, 18]]]
+  - [-1, 1, Adapter, [512, 256]]
+  - [-1, 1, FABlock, [256]]
+  - [-1, 1, SPPF, [256, 5]]
 
-# ------------------------------------------------------------------
-# Prepare detection heads (multi-scale adapters)
-# ------------------------------------------------------------------
-  - [15, 1, Adapter, [256, 96]]                      # 38  # from layer 15 (P3)
-  - [21, 1, Adapter, [384, 160]]                     # 39  # from layer 21 (P4)
-  - [27, 1, Adapter, [512, 192]]                     # 40  # from layer 27 (P5)
+  - [15, 1, Adapter, [256, 96]]
+  - [21, 1, Adapter, [384, 160]]
+  - [27, 1, Adapter, [512, 192]]
 
-# ------------------------------------------------------------------
-# Detect head (expects 3 inputs: P3, P4, P5)
-# ------------------------------------------------------------------
-  - [[38, 39, 40], 1, Detect, [nc]]                  # 41
-
+  - [[38, 39, 40], 1, Detect, [nc]]

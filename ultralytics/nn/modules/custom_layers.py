@@ -1,6 +1,3 @@
-# ultralytics/ultralytics/nn/modules/custom_layers.py
-# Custom attention and feature fusion blocks for YOLOv9 hybrid architectures
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -23,11 +20,9 @@ class CBAM(nn.Module):
         )
 
     def forward(self, x):
-        # Channel attention
         ca = self.channel_attention(x)
         x = x * ca
 
-        # Spatial attention
         sa = torch.cat([torch.max(x, 1, keepdim=True)[0],
                         torch.mean(x, 1, keepdim=True)], dim=1)
         sa = self.spatial_attention(sa)
@@ -63,7 +58,6 @@ class ASPP(nn.Module):
         return self.project(x)
 
 
-
 class BiFPN(nn.Module):
     def __init__(self, channels, num_layers=2, eps=1e-4):
         super(BiFPN, self).__init__()
@@ -74,7 +68,6 @@ class BiFPN(nn.Module):
         self.ws = nn.Parameter(torch.ones(num_layers, 2))
 
     def forward(self, x):
-        # Example expects a list of multi-scale features [P3, P4, P5]
         if isinstance(x, list) and len(x) == 3:
             P3, P4, P5 = x
             for i in range(self.num_layers):

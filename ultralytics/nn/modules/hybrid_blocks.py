@@ -3,15 +3,15 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 def conv_bn_act(in_ch, out_ch, k=1, s=1, p=0, groups=1, act=True):
-    """A convenience function for a convolutional layer followed by batch normalization and an optional activation."""
-    layers = [nn.Conv2d(in_ch, out_ch, k, s, p, groups=groups, bias=False),
-              nn.BatchNorm2d(out_ch)]
+    layers = [
+        nn.Conv2d(in_ch, out_ch, k, s, p, groups=groups, bias=False),
+        nn.BatchNorm2d(out_ch)
+    ]
     if act:
         layers.append(nn.SiLU(inplace=True))
     return nn.Sequential(*layers)
 
 class SqueezeExcite(nn.Module):
-    """Squeeze-and-Excitation block."""
     def __init__(self, in_ch=None, se_ch=None):
         super().__init__()
         self.in_ch = in_ch
@@ -33,7 +33,6 @@ class SqueezeExcite(nn.Module):
         return x * self.fc(self.pool(x))
 
 class MyHGBlock(nn.Module):
-    """Custom Hourglass-like block."""
     def __init__(self, in_ch=None, out_ch=None, expand_ratio=4, kernel=3, stride=1, use_se=True):
         super().__init__()
         self.in_ch = in_ch
@@ -45,7 +44,6 @@ class MyHGBlock(nn.Module):
         self._built = False
 
     def build(self):
-        """Builds the layers of the block dynamically based on input shape."""
         in_ch = self.in_ch
         out_ch = self.out_ch
         hidden_ch = int(in_ch * self.expand_ratio)
@@ -65,10 +63,7 @@ class MyHGBlock(nn.Module):
             nn.SiLU(inplace=True)
         )
 
-        if self.use_se_flag:
-            self.se = SqueezeExcite(hidden_ch, max(1, in_ch // 8))
-        else:
-            self.se = nn.Identity()
+        self.se = SqueezeExcite(hidden_ch, max(1, in_ch // 8)) if self.use_se_flag else nn.Identity()
 
         self.project = nn.Sequential(
             nn.Conv2d(hidden_ch, out_ch, 1, 1, 0, bias=False),
@@ -94,7 +89,6 @@ class MyHGBlock(nn.Module):
         return out
 
 class SPDADown(nn.Module):
-    """Space-to-Depth-and-Attention Downsampling block."""
     def __init__(self, out_ch, block_size=2):
         super().__init__()
         self.block_size = block_size
@@ -117,7 +111,6 @@ class SPDADown(nn.Module):
         return self.fuse(x)
 
 class FABlock(nn.Module):
-    """Feature Aggregation Block."""
     def __init__(self, in_ch=None, reduction=8):
         super().__init__()
         self.reduction = reduction
@@ -149,11 +142,10 @@ class FABlock(nn.Module):
         return self.fuse(out)
 
 class Adapter(nn.Module):
-    """Adapter block for channel transformation."""
     def __init__(self, in_ch=None, out_ch=None):
         super().__init__()
         self.in_ch = in_ch
-        self.out_ch = out_ch # This was the original typo location, now corrected.
+        self.out_ch = out_ch
         self.proj = None
 
     def forward(self, x):
@@ -164,4 +156,3 @@ class Adapter(nn.Module):
                 self.out_ch = c
             self.proj = conv_bn_act(c, self.out_ch, k=1, s=1, p=0).to(x.device)
         return self.proj(x)
-

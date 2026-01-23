@@ -1,97 +1,55 @@
-# optimized_model.yaml
-# (Baseline + EfficientNet + FABlock + MyHGBlock + CBAM)
-# This model enables ONLY the modules that showed a positive mAP
-# gain in your additive ablation study.
-#
-# WINNERS ENABLED:
-#   - EfficientNetBackbone (True Baseline)
-#   - FABlock (+0.00555 mAP)
-#   - MyHGBlock (+0.01788 mAP)
-#   - CBAM (+0.01328 mAP)
-#
-# LOSERS DISABLED (kept as placeholders):
-#   - SPDADown (-0.00438 mAP)
-#   - DropBlock (-0.02138 mAP)
-#   - BiFPN (-0.01054 mAP)
-#   - Context (+0.00262 mAP, but after bad modules)
-#   - Full_Fusion (-0.00981 mAP)
-#
-# Parameters
 nc: 80
 
-# Backbone
 backbone:
-  # ENABLED: EfficientNetBackbone
-  - [-1, 1, EfficientNetBackbone, ["efficientnet_b3", True, [2, 3, 4]]] # 0
+  - [-1, 1, EfficientNetBackbone, ["efficientnet_b3", True, [2, 3, 4]]]
 
-# Transition & lightweight feature adapters
 head:
-  - [-1, 1, Adapter, [1280, 256]]           # 1
-  - [-1, 1, FABlock, [256]]                 # 2 (ENABLED)
-  - [-1, 1, MyHGBlock, [256, 256, 3, 1]]    # 3 (ENABLED)
-  - [-1, 1, Conv, [384, 3, 2]]              # 4 (DISABLED, placeholder)
-  - [-1, 1, FABlock, [384]]                 # 5 (ENABLED)
-  - [-1, 1, MyHGBlock, [384, 384, 3, 1]]    # 6 (ENABLED)
-  - [-1, 1, Adapter, [512, 256]]            # 7
-  - [-1, 1, nn.Identity, []]                # 8 (DISABLED, placeholder)
+  - [-1, 1, Adapter, [1280, 256]]
+  - [-1, 1, FABlock, [256]]
+  - [-1, 1, MyHGBlock, [256, 256, 3, 1]]
+  - [-1, 1, Conv, [384, 3, 2]]
+  - [-1, 1, FABlock, [384]]
+  - [-1, 1, MyHGBlock, [384, 384, 3, 1]]
+  - [-1, 1, Adapter, [512, 256]]
+  - [-1, 1, nn.Identity, []]
 
-# ------------------------------------------------------------------
-# Neck / Top-down path (feature fusion + attention)
-# ------------------------------------------------------------------
-  - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # 9
-  - [[-1, 5], 1, Concat, [1]]                 # 10
-  - [-1, 1, Adapter, [640, 384]]            # 11
-  - [-1, 1, FABlock, [384]]                 # 12 (ENABLED)
-  - [-1, 1, CBAM, [384]]                    # 13 (ENABLED)
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [[-1, 5], 1, Concat, [1]]
+  - [-1, 1, Adapter, [640, 384]]
+  - [-1, 1, FABlock, [384]]
+  - [-1, 1, CBAM, [384]]
 
-  - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # 14
-  - [[-1, 2], 1, Concat, [1]]                 # 15
-  - [-1, 1, Adapter, [640, 256]]            # 16
-  - [-1, 1, FABlock, [256]]                 # 17 (ENABLED)
-  - [-1, 1, CBAM, [256]]                    # 18 (ENABLED)
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [[-1, 2], 1, Concat, [1]]
+  - [-1, 1, Adapter, [640, 256]]
+  - [-1, 1, FABlock, [256]]
+  - [-1, 1, CBAM, [256]]
 
-# ------------------------------------------------------------------
-# Bottom-up path (enhanced fusion)
-# ------------------------------------------------------------------
-  - [-1, 1, Conv, [256, 3, 2]]              # 19 (DISABLED, placeholder)
-  - [[-1, 11], 1, Concat, [1]]                # 20
-  - [-1, 1, Adapter, [640, 384]]            # 21
-  - [-1, 1, FABlock, [384]]                 # 22 (ENABLED)
-  - [-1, 1, CBAM, [384]]                    # 23 (ENABLED)
+  - [-1, 1, Conv, [256, 3, 2]]
+  - [[-1, 11], 1, Concat, [1]]
+  - [-1, 1, Adapter, [640, 384]]
+  - [-1, 1, FABlock, [384]]
+  - [-1, 1, CBAM, [384]]
 
-  - [-1, 1, Conv, [384, 3, 2]]              # 24 (DISABLED, placeholder)
-  - [[-1, 7], 1, Concat, [1]]                 # 25
-  - [-1, 1, Adapter, [640, 512]]            # 26
-  - [-1, 1, FABlock, [512]]                 # 27 (ENABLED)
-  - [-1, 1, CBAM, [512]]                    # 28 (ENABLED)
+  - [-1, 1, Conv, [384, 3, 2]]
+  - [[-1, 7], 1, Concat, [1]]
+  - [-1, 1, Adapter, [640, 512]]
+  - [-1, 1, FABlock, [512]]
+  - [-1, 1, CBAM, [512]]
 
-# ------------------------------------------------------------------
-# BiFPN-style multi-scale fusion (fuse P3, P4, P5)
-# ------------------------------------------------------------------
-  # The rest of this file is from your 00_baseline,
-  # keeping all other modules (BiFPN, Context) disabled.
-  - [[17, 22, 27], 1, Concat, [1]]           # 29
-  - [-1, 1, Adapter, [768, 512]]            # 30
-  - [-1, 1, FABlock, [512]]                 # 31 (ENABLED)
-  - [-1, 1, nn.Identity, []]                # 32 (DISABLED, placeholder)
-  - [-1, 1, CBAM, [512]]                    # 33 (ENABLED)
+  - [[17, 22, 27], 1, Concat, [1]]
+  - [-1, 1, Adapter, [768, 512]]
+  - [-1, 1, FABlock, [512]]
+  - [-1, 1, nn.Identity, []]
+  - [-1, 1, CBAM, [512]]
 
-# ------------------------------------------------------------------
-# ASPP + SPPF context modules (capture multi-scale context)
-# ------------------------------------------------------------------
-  - [-1, 1, nn.Identity, []]                # 34 (DISABLED, placeholder)
-  - [-1, 1, Adapter, [512, 256]]            # 35
-  - [-1, 1, FABlock, [256]]                 # 36 (ENABLED)
-  - [-1, 1, nn.Identity, []]                # 37 (DISABLED, placeholder)
+  - [-1, 1, nn.Identity, []]
+  - [-1, 1, Adapter, [512, 256]]
+  - [-1, 1, FABlock, [256]]
+  - [-1, 1, nn.Identity, []]
 
-# ------------------------------------------------------------------
-# Prepare detection heads (multi-scale adapters)
-# ------------------------------------------------------------------
-  - [17, 1, Adapter, [256, 96]]             # 38 # from layer 17 (P3)
-  - [21, 1, Adapter, [384, 160]]            # 39 # from layer 21 (P4)
-  - [27, 1, Adapter, [512, 192]]            # 40 # from layer 27 (P5)
+  - [17, 1, Adapter, [256, 96]]
+  - [21, 1, Adapter, [384, 160]]
+  - [27, 1, Adapter, [512, 192]]
 
-# ------------------------------------------------------------------
-# Detect head (expects 3 inputs: P3, P4, P5)
-# ------------------------------------------------------------------
-  - [[38, 39, 40], 1, Detect, [nc]]         # 41
+  - [[38, 39, 40], 1, Detect, [nc]]
