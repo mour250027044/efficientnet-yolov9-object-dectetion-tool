@@ -2,14 +2,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 def conv_bn_act(in_ch, out_ch, k=1, s=1, p=0, groups=1, act=True):
-    layers = [
-        nn.Conv2d(in_ch, out_ch, k, s, p, groups=groups, bias=False),
-        nn.BatchNorm2d(out_ch)
-    ]
+    layers = [nn.Conv2d(in_ch, out_ch, k, s, p, groups=groups, bias=False), nn.BatchNorm2d(out_ch)]
     if act:
         layers.append(nn.SiLU(inplace=True))
     return nn.Sequential(*layers)
+
 
 class SqueezeExcite(nn.Module):
     def __init__(self, in_ch=None, se_ch=None):
@@ -25,12 +24,10 @@ class SqueezeExcite(nn.Module):
             self.in_ch = c
             se_ch = max(1, c // 8) if self.se_ch is None else self.se_ch
             self.fc = nn.Sequential(
-                nn.Conv2d(c, se_ch, 1, 1, 0),
-                nn.SiLU(inplace=True),
-                nn.Conv2d(se_ch, c, 1, 1, 0),
-                nn.Sigmoid()
+                nn.Conv2d(c, se_ch, 1, 1, 0), nn.SiLU(inplace=True), nn.Conv2d(se_ch, c, 1, 1, 0), nn.Sigmoid()
             ).to(x.device)
         return x * self.fc(self.pool(x))
+
 
 class MyHGBlock(nn.Module):
     def __init__(self, in_ch=None, out_ch=None, expand_ratio=4, kernel=3, stride=1, use_se=True):
@@ -51,26 +48,23 @@ class MyHGBlock(nn.Module):
 
         self.expand_conv = (
             nn.Sequential(
-                nn.Conv2d(in_ch, hidden_ch, 1, 1, 0, bias=False),
-                nn.BatchNorm2d(hidden_ch),
-                nn.SiLU(inplace=True)
-            ) if self.expand_ratio != 1 else nn.Identity()
+                nn.Conv2d(in_ch, hidden_ch, 1, 1, 0, bias=False), nn.BatchNorm2d(hidden_ch), nn.SiLU(inplace=True)
+            )
+            if self.expand_ratio != 1
+            else nn.Identity()
         )
 
         self.dw = nn.Sequential(
             nn.Conv2d(hidden_ch, hidden_ch, self.kernel, self.stride, pad, groups=hidden_ch, bias=False),
             nn.BatchNorm2d(hidden_ch),
-            nn.SiLU(inplace=True)
+            nn.SiLU(inplace=True),
         )
 
         self.se = SqueezeExcite(hidden_ch, max(1, in_ch // 8)) if self.use_se_flag else nn.Identity()
 
-        self.project = nn.Sequential(
-            nn.Conv2d(hidden_ch, out_ch, 1, 1, 0, bias=False),
-            nn.BatchNorm2d(out_ch)
-        )
+        self.project = nn.Sequential(nn.Conv2d(hidden_ch, out_ch, 1, 1, 0, bias=False), nn.BatchNorm2d(out_ch))
 
-        self.use_res_connect = (self.stride == 1 and in_ch == out_ch)
+        self.use_res_connect = self.stride == 1 and in_ch == out_ch
         self._built = True
 
     def forward(self, x):
@@ -87,6 +81,7 @@ class MyHGBlock(nn.Module):
         if self.use_res_connect:
             return x + out
         return out
+
 
 class SPDADown(nn.Module):
     def __init__(self, out_ch, block_size=2):
@@ -109,6 +104,7 @@ class SPDADown(nn.Module):
             in_ch = x.shape[1]
             self.fuse = conv_bn_act(in_ch, self.out_ch, k=1, s=1, p=0).to(x.device)
         return self.fuse(x)
+
 
 class FABlock(nn.Module):
     def __init__(self, in_ch=None, reduction=8):
@@ -140,6 +136,7 @@ class FABlock(nn.Module):
 
         out = x_ch * m + x_ch
         return self.fuse(out)
+
 
 class Adapter(nn.Module):
     def __init__(self, in_ch=None, out_ch=None):
