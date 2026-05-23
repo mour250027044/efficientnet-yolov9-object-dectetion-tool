@@ -49,9 +49,9 @@ https://universe.roboflow.com/mour250027044/ev-battery-components-edfw3
 
 ## 📊 Key Results (from paper)
 
-| Model | Recall | mAP50 | mAP50-95 |
-|------|-------|------|---------|
-| YOLOv9c (baseline) | 0.564 | 0.584 | 0.424 |
+| Model                   | Recall    | mAP50     | mAP50-95  |
+| ----------------------- | --------- | --------- | --------- |
+| YOLOv9c (baseline)      | 0.564     | 0.584     | 0.424     |
 | **Efficient-HG-YOLOv9** | **0.637** | **0.613** | **0.448** |
 
 Largest improvements occur for nuts, cables, connectors, and busbars — critical for robotic safety.
