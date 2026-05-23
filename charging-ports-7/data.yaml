@@ -1,11 +1,11 @@
 names:
-- CCS1
-- CCS2
-- CHAdeMO
-- GB-T
-- Tesla Model-S-
-- Type 1
-- Type 2
+  - CCS1
+  - CCS2
+  - CHAdeMO
+  - GB-T
+  - Tesla Model-S-
+  - Type 1
+  - Type 2
 nc: 7
 roboflow:
   license: CC BY 4.0
