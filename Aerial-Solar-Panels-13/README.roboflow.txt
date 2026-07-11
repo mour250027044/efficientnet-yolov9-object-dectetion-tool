@@ -24,7 +24,7 @@ The following pre-processing was applied to each image:
 
 The following augmentation was applied to create 4 versions of each source image:
 * Randomly crop between 0 and 42 percent of the image
-* Random brigthness adjustment of between -50 and +50 percent
+* Random brightness adjustment of between -50 and +50 percent
 
 The following transformations were applied to the bounding boxes of each image:
 * Equal probability of one of the following 90-degree rotations: none, clockwise, counter-clockwise, upside-down
