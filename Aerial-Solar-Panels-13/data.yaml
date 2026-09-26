@@ -1,5 +1,5 @@
 names:
-- solar-panels
+  - solar-panels
 nc: 1
 roboflow:
   license: Private
